@@ -8,18 +8,29 @@
 #gem install sequel --no-ri --no-rdoc
 #yum install sqlite-devel
 #gem install sqlite3 --no-ri --no-rdoc
+#gem install mail --no-ri --no-rdoc
 
 require 'date'
 require 'digest'
 require 'sequel'
 require 'sqlite3'
+require 'mail'
 
 sqlite3="/home/weirdbricks/processed-photos.db"
 source_directory="/home/weirdbricks/unprocessed-photos/*"
 target_directory="/home/weirdbricks/archived-photos"
 
+#CHANGE THOSE E-MAIL SETTINGS FOR OUTGOING E-MAIL
+options = { :address              => "mail.gmx.com",
+            :port                 => 465,
+            :domain               => 'mail.gmx.com',
+            :user_name            => '',
+            :password             => '',
+            :authentication       => 'plain',
+            :enable_starttls_auto => true  }
 
 DB = Sequel.sqlite(sqlite3)
+$logfile = "/home/weirdbricks/duplicates"+DateTime.now.strftime("%H-%M_%m-%d-%Y")+".log"
 
 #create the tables only if the file doesn't exist!
 unless File.exists?(sqlite3)
@@ -34,8 +45,7 @@ end
 #a function that logs messages to a file
 def log(text)
    puts text
-   logfile="/home/weirdbricks/duplicates"+DateTime.now.strftime("%H-%M_%m-%d-%Y")+".log"
-   `echo "#{text}" >> #{logfile}`
+   `echo "#{text}" >> #{$logfile}`
 end
 
 def remove_spaces_from_directories(directories)
@@ -47,7 +57,7 @@ def remove_spaces_from_directories(directories)
       puts newitem
       #renaming (moving) directory
       log "Renaming directory: #{item}"
-     `mv "#{item}" #{newitem}`
+      `mv "#{item}" #{newitem}`
        if Dir.exists?(newitem)
          log "Renaming of directory: #{item} SUCCESS"
        end
@@ -83,3 +93,19 @@ directories.each do |directory|
 
 end
 
+email=""
+File.readlines($logfile).each do |line| 
+  if line.include?"WARNING"
+    email="YES"
+  end
+end
+
+if email=="YES" 
+  puts "sending e-mail"
+  Mail.deliver do
+    to 'thehauntedmind@netscape.net'
+    from 'lampros.chaidas@gmx.com'
+    subject 'warnings!'
+    body 'haha some body goes here'
+  end
+end
