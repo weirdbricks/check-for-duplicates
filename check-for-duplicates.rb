@@ -96,6 +96,7 @@ end
 directories = `find #{$source_directory} -type d`.split("\n")
 log "Checking directories for spaces.."
 remove_spaces_from_directories directories
+directories = `find #{$source_directory} -type d`.split("\n")
 
 dataset = DB[:photos]
 
@@ -117,6 +118,9 @@ directories.each do |directory|
     `mv #{file} #{newdir}`
     else
       log "WARNING: file: #{file} already exists! skipping!"
+      result.each do |item|
+         log "detected duplicate is: #{item[:filename]}"
+      end
     end 
   end
   delete_directory_if_empty directory
