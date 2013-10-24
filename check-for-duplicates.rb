@@ -82,12 +82,11 @@ def remove_spaces_from_directories(directories)
     if item.include?(" ")
       log "Directory #{item} has a space!"
       newitem=item.gsub(" ","_")
-      puts newitem
+      log "renaming directory to #{newitem}"
       #renaming (moving) directory
-      log "Renaming directory: #{item}"
       `mv "#{item}" #{newitem}`
        if Dir.exists?(newitem)
-         log "Renaming of directory: #{item} SUCCESS"
+         log "Renaming of directory: #{item} to #{newitem} :SUCCESS"
        end
     end
   end
