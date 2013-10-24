@@ -17,8 +17,8 @@ require 'sqlite3'
 require 'mail'
 
 sqlite3="/home/weirdbricks/processed-photos.db"
-source_directory="/home/weirdbricks/unprocessed-photos/*"
-target_directory="/home/weirdbricks/archived-photos"
+$source_directory="/home/weirdbricks/unprocessed-photos/*"
+$target_directory="/home/weirdbricks/archived-photos"
 
 #CHANGE THOSE E-MAIL SETTINGS FOR OUTGOING E-MAIL
 options = { :address              => "mail.gmx.com",
@@ -30,7 +30,8 @@ options = { :address              => "mail.gmx.com",
             :enable_starttls_auto => true  }
 
 DB = Sequel.sqlite(sqlite3)
-$logfile = "/home/weirdbricks/duplicates"+DateTime.now.strftime("%H-%M_%m-%d-%Y")+".log"
+$date_to_use = DateTime.now.strftime("%H-%M_%m-%d-%Y")
+$logfile = "/home/weirdbricks/duplicates"+$date_to_use+".log"
 
 #create the tables only if the file doesn't exist!
 unless File.exists?(sqlite3)
@@ -46,6 +47,19 @@ end
 def log(text)
    puts text
    `echo "#{text}" >> #{$logfile}`
+end
+
+def create_dir(directory)
+  puts "this is what i got! #{directory}"
+  #directory = get_dir_from_file directory
+  directory = directory.gsub($source_directory.chomp('/*'),$target_directory)
+  if Dir.exists?(directory)
+    log "directory #{directory} already exists"
+  else
+    log "directory #{directory} doesn't exist - creating"
+    `mkdir #{directory}`
+  end
+  return directory
 end
 
 def remove_spaces_from_directories(directories)
@@ -66,7 +80,7 @@ def remove_spaces_from_directories(directories)
 end
 
 #get directories and split them on \n, which makes them an array
-directories = `find #{source_directory} -type d`.split("\n")
+directories = `find #{$source_directory} -type d`.split("\n")
 log "Checking directories for spaces.."
 remove_spaces_from_directories directories
 
@@ -74,6 +88,7 @@ dataset = DB[:photos]
 
 #go through each directory and process files
 directories.each do |directory|
+  newdir = create_dir directory
   files=`find /home/weirdbricks/unprocessed-photos/* -type f`.split("\n")
   #go through each file calculate it's hash and check if it exists in the database
   files.each do |file|
@@ -85,6 +100,8 @@ directories.each do |directory|
       dataset.insert(:filename => file,
                      :size => size,
                      :hash => hash)
+    log "moving file #{file} to directory #{newdir}"
+    `mv #{file} #{newdir}`
     else
       log "WARNING: file: #{file} already exists! skipping!"
     end
@@ -103,9 +120,10 @@ end
 if email=="YES" 
   puts "sending e-mail"
   Mail.deliver do
-    to 'thehauntedmind@netscape.net'
+    to 'lampros.chaidas@gmx.com'
     from 'lampros.chaidas@gmx.com'
-    subject 'warnings!'
-    body 'haha some body goes here'
+    subject "Errors during import"
+    body "Please check attached logfile: #{$logfile}"
+    add_file $logfile
   end
 end
