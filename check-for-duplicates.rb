@@ -49,6 +49,20 @@ def log(text)
    `echo "#{text}" >> #{$logfile}`
 end
 
+def delete_directory_if_empty(directory)
+  files = `find #{directory}* -type f`.split("\n")
+  dirs = `find #{directory}* -type d -not -path #{directory}`.split("\n")
+  if files.count==0 and dirs.count==0
+     log "deleting directory (EMPTY): #{directory}"
+    `rmdir #{directory}`
+  else
+    log "cannot delete directory: #{directory}, because:"
+    log "I found #{files.count} files: #{files}"
+    log "I found #{dirs.count} directories: #{dirs}"
+  end
+end
+
+
 def create_dir(directory)
   puts "this is what i got! #{directory}"
   #directory = get_dir_from_file directory
@@ -104,10 +118,9 @@ directories.each do |directory|
     `mv #{file} #{newdir}`
     else
       log "WARNING: file: #{file} already exists! skipping!"
-    end
-
+    end 
   end
-
+  delete_directory_if_empty directory
 end
 
 email=""
